@@ -23,6 +23,6 @@ CREATE TABLE IF NOT EXISTS aggregates_1h
     liquidations_buy_quot_volume Nullable(Float64),
     updated_timestamp UInt64 DEFAULT toUnixTimestamp64Milli(now())
 ) 
-ENGINE = MergeTree()
-ORDER BY agg_timestamp
-TTL agg_timestamp + INTERVAL 40 DAY;
+ENGINE = ReplacingMergeTree(updated_timestamp)
+PARTITION BY toYear(toDateTime(agg_timestamp))
+ORDER BY (agg_timestamp, exchange, market, base, quot);
