@@ -26,3 +26,35 @@ CREATE TABLE IF NOT EXISTS aggregates_1h
 ENGINE = ReplacingMergeTree(updated_timestamp)
 PARTITION BY toYear(toDateTime(agg_timestamp))
 ORDER BY (agg_timestamp, exchange, market, base, quot);
+
+INSERT INTO aggregates_1h
+SELECT
+    toUnixTimestamp(toStartOfHour(toDateTime(event_timestamp))) AS agg_timestamp,
+    exchange,
+    market,
+    base,
+    quot,
+    any(price_open) AS price_open,
+    any(price_close) AS price_close,
+    any(price_high) AS price_high,
+    any(price_low) AS price_low,
+    any(volume_quot) AS volume_quot,
+    any(volume_base) AS volume_base,
+    any(volume_base_sell_taker) AS volume_base_sell_taker,
+    any(volume_base_buy_taker) AS volume_base_buy_taker,
+    any(oi_open) AS oi_open,
+    any(trades_count) AS trades_count,
+    any(liquidations_sell_count) AS liquidations_sell_count,
+    any(liquidations_buy_count) AS liquidations_buy_count,
+    any(liquidations_sell_base_volume) AS liquidations_sell_base_volume,
+    any(liquidations_buy_base_volume) AS liquidations_buy_base_volume,
+    any(liquidations_sell_quot_volume) AS liquidations_sell_quot_volume,
+    any(liquidations_buy_quot_volume) AS liquidations_buy_quot_volume,
+    toUnixTimestamp64Milli(now()) AS updated_timestamp
+FROM exchanges_events_1h
+GROUP BY
+    toStartOfHour(toDateTime(event_timestamp)),
+    exchange,
+    market,
+    base,
+    quot;
