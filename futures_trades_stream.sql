@@ -21,3 +21,5 @@ is_buyer_maker Nullable(bool) DEFAULT NULL
 ) ENGINE = MergeTree
 PARTITION BY toYear(fromUnixTimestamp(trade_timestamp))
 ORDER BY (trade_timestamp, exchange, market)
+
+INSERT INTO futures_trades_stream VALUES
