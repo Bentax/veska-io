@@ -22,11 +22,11 @@ CREATE TABLE IF NOT EXISTS exchanges_events_1h
     liquidations_buy_base_volume Nullable(Float64),
     liquidations_sell_quot_volume Nullable(Float64),
     liquidations_buy_quot_volume Nullable(Float64),
-    updated_timestamp UInt64 DEFAULT toUnixTimestamp64Milli(now())
+    updated_timestamp UInt64 DEFAULT toUnixTimestamp64Milli(cast(now(),'DateTime64'))
 ) 
 ENGINE = MergeTree()
 ORDER BY event_timestamp
-TTL event_timestamp + INTERVAL 40 DAY;
+TTL toDateTime(updated_timestamp) + INTERVAL 40 DAY;
 
 -- Агрегация для события 'price'
 INSERT INTO exchanges_events_1h
