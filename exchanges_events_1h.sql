@@ -53,7 +53,7 @@ SELECT
     liquidations_buy_base_volume,
     liquidations_sell_quot_volume,
     liquidations_buy_quot_volume,
-    toUnixTimestamp(now()) * 1000 AS updated_timestamp
+    updated_timestamp
 FROM
 (
     SELECT
@@ -78,7 +78,8 @@ FROM
         NULL AS liquidations_sell_base_volume,
         NULL AS liquidations_buy_base_volume,
         NULL AS liquidations_sell_quot_volume,
-        NULL AS liquidations_buy_quot_volume
+        NULL AS liquidations_buy_quot_volume,
+        toUnixTimestamp(now()) * 1000 AS updated_timestamp
     FROM futures_trades_stream
     GROUP BY event_timestamp, exchange, market, base, quot
     LIMIT 100
@@ -107,7 +108,8 @@ FROM
         NULL AS liquidations_sell_base_volume,
         NULL AS liquidations_buy_base_volume,
         NULL AS liquidations_sell_quot_volume,
-        NULL AS liquidations_buy_quot_volume
+        NULL AS liquidations_buy_quot_volume,
+        toUnixTimestamp(now()) * 1000 AS updated_timestamp
     FROM futures_trades_stream
     GROUP BY event_timestamp, exchange, market, base, quot
     LIMIT 100
@@ -136,7 +138,8 @@ FROM
         NULL AS liquidations_sell_base_volume,
         NULL AS liquidations_buy_base_volume,
         NULL AS liquidations_sell_quot_volume,
-        NULL AS liquidations_buy_quot_volume
+        NULL AS liquidations_buy_quot_volume,
+        toUnixTimestamp(now()) * 1000 AS updated_timestamp
     FROM futures_trades_stream
     GROUP BY event_timestamp, exchange, market, base, quot
     LIMIT 100
@@ -165,7 +168,8 @@ FROM
         sumIf(size, trade_type = 'liquidation' AND side = 'sell') AS liquidations_sell_base_volume,
         sumIf(size, trade_type = 'liquidation' AND side = 'buy') AS liquidations_buy_base_volume,
         sumIf(size * price, trade_type = 'liquidation' AND side = 'sell') AS liquidations_sell_quot_volume,
-        sumIf(size * price, trade_type = 'liquidation' AND side = 'buy') AS liquidations_buy_quot_volume
+        sumIf(size * price, trade_type = 'liquidation' AND side = 'buy') AS liquidations_buy_quot_volume,
+        toUnixTimestamp(now()) * 1000 AS updated_timestamp
     FROM futures_trades_stream
     GROUP BY event_timestamp, exchange, market, base, quot
     LIMIT 100
