@@ -1,3 +1,82 @@
+Letter 1
+Текущий статус
+В данный момент мы совершаем переезд с инфраструктуры AWS + развернутой
+самостоятельно БД -> в Google Cloud + Clickhouse Cloud.
+Создаем таблицы заново, настраиваем потоки и т.д.
+Сейчас в новом Clickhouse только одна таллица в схеме Private
+Что такое Private
+В БД есть две схемы public и private
+Public - это подмножество от Private. Тоесть Private содержит в себе все таблицы, которые есть в Public + все данные, что есть в Public. 
+Но в Private есть данные которых нет в Public, и могут быть таблицы которых нет в Public
+Часть исследований мы делаем для себя или кого-то еще, и не хотим раньше времени это показывать. 
+Поэтому, мы вцелом физически разделяем эти два направления Public/Private. 
+Храним код в разных местах, дублируем данные и коннекторы
+Немного о специфике работы с Clickhouse
+Кликхаус специализируется на быстрой вставке данных и быстрой "онлайн" аналитке. 
+Это подразумевает под собой некоторые tradeoffs. Например, здесь нет привычных constraints по ключу. 
+Тоесть, нельзя указать первичный ключ и ожидать, что в данных не будет
+дубликатов. 
+ДУБЛИКАТЫ ВСЕГДА ЕСТЬ. 
+Даже если ты используешь какой-нибудь движок таблицы ReplacingMergeTree или AggregatingMergeTree. 
+В конечной своей выборке надо обязательно делать предварительный GROUP BY подготавливая данные.
+
+Задачи
+Сейчас в схеме Private есть таблица futures_trades_stream.
+Нужно создать таблицу exchanges_events_1h
+Структура таблицы такая-же, как в у message Event описанного в файле protobuff:
+https://github.com/veska-io/streams-proto/blob/main/proto/main/exchanges_events.proto
++также надо добавить туда поле updated_timestamp и установить ему значение по
+дефолту равное текущему значению UnixTimestamp в МИЛЛИСЕКУНДАХ. Тоесть число должно быть что-то вроде 1257894000000
+TTL таблицы установить в 40 дней
+Движок можно сделать обычный MergeTree
+
+Нужно написать запрос, который из данных таблицы futures_trades_stream будет
+создавать события в таблице exchanges_events_1h
+Где event может быть:
+price | volume | trades | liquidations
+Тоесть мы должны породить 4 записи на каждый час, где в каждой из записей заполнены
+(сагрегированны) поля с префиксом ивента. А остальные поля выставлены в NULL.
+
+Далее нужно создать таблицу aggregates_1h
+Структура ее точно такая-же как и exchange_events, но без поля event и поле
+event_timestamp переименовано в agg_timestamp
+Сделать запрос в таблицу exchanges_events_1h, который будет аггрегировать ивенты за
+1h и собирать цельную строку без NULL-ов и записывать уже чистый аггрегат в aggregates
+TTL тут не нужен
+Добавить партиционирование по Году
+Установить движок ReplacingMergeTree
+Подобрать первичный ключ, который будет явно определять уникальность часового
+аггрегата
+Вот пример создания талицы. 
+Тут нет установления TTL и есть ненужный для exchanges_events_1h PARTITION BY
+
+CREATE TABLE IF NOT EXISTS futures_trades_stream
+(
+updated_at DateTime DEFAULT now(),
+trade_timestamp UInt64 NOT NULL,
+created_at_height Nullable(UInt64) DEFAULT NULL,
+trade_id Nullable(String) DEFAULT NULL,
+agg_id Nullable(String) DEFAULT NULL,
+start_trade_id Nullable(String) DEFAULT NULL,
+end_trade_id Nullable(String) DEFAULT NULL,
+exchange String NOT NULL,
+market String NOT NULL,
+base String NOT NULL,
+quot String NOT NULL,
+side String NOT NULL,
+size Float64 NOT NULL,
+price Float64 NOT NULL,
+trade_type Nullable(String) DEFAULT NULL,
+is_buyer_maker Nullable(bool) DEFAULT NULL
+) ENGINE = MergeTree
+PARTITION BY toYear(fromUnixTimestamp(trade_timestamp))
+ORDER BY (trade_timestamp, exchange, market)
+
+Тебе нужно сначала на основе futures_trades_stream создать ивенты в exchange_events_1h
+Ликвидации - это трейды у которых в type = "LIQUIDATED"
+Обрати внимание что в тадице exchanges_events должно получиться 4 записи по одному часу с event-ами price / volume / trades / liquidations
+Тоже обрати внимание что volume_base_sell_taker - это side BUY. Это не ошибка Так как в трейде всегда есть тейкре и мейкер. Тут мы считаем тейкера
+
 price_open // первая цена в часовом интервале
 price_close // последняя цена в часовом интервале
 price_high // максимальная цена в часовом интервале
