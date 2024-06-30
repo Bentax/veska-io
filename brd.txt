@@ -1,4 +1,4 @@
-Letter 1
+OVER (PARTITION BY name) - https://habr.com/ru/articles/664000/
 Текущий статус
 В данный момент мы совершаем переезд с инфраструктуры AWS + развернутой
 самостоятельно БД -> в Google Cloud + Clickhouse Cloud.
