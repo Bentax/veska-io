@@ -1,0 +1,16 @@
+price_open // первая цена в часовом интервале
+price_close // последняя цена в часовом интервале
+price_high // максимальная цена в часовом интервале
+price_low // минимальная цена в часовом интервале
+volume_quot // объем в токенах
+volume_base // объем в USD
+volume_base_sell_taker // объем трейдов с SIDE = BUY и TYPE = LIMIT
+volume_base_buy_taker // объем трейдов с SIDE = SELL и TYPE = LIMIT
+oi_open // пока нет
+trades_count // количество стрейдов в интервале
+liquidations_sell_count // количество трейдов с SIDE = SELL и TYPE = LIQUIDATION
+liquidations_buy_count // количество трейдов с SIDE = BUY и TYPE = LIQUIDATION 
+liquidations_sell_base_volume // обхем в токенах трейдов с SIDE = SELL и TYPE = LIQUIDATION 
+liquidations_buy_base_volume // объем в токенаъ трейдов с SIDE = BUY и TYPE = LIQUIDATION
+liquidations_sell_quot_volume // объем в USD
+liquidations_buy_quot_volume // объем в USD
