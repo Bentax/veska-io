@@ -22,7 +22,7 @@ CREATE TABLE IF NOT EXISTS exchanges_events_1h
     liquidations_buy_base_volume Nullable(Float64),
     liquidations_sell_quot_volume Nullable(Float64),
     liquidations_buy_quot_volume Nullable(Float64),
-    updated_timestamp UInt64 DEFAULT toUnixTimestamp64Milli(cast(now(),'DateTime64'))
+    updated_timestamp UInt64 DEFAULT toUnixTimestamp64Milli(now64(3))
 ) 
 ENGINE = MergeTree()
 ORDER BY event_timestamp
@@ -31,32 +31,8 @@ TTL toDateTime(updated_timestamp) + INTERVAL 40 DAY;
 -- ЗАПРОС
 
 INSERT INTO exchanges_events_1h
-SELECT
-    event,
-    event_timestamp,
-    exchange,
-    market,
-    base,
-    quot,
-    price_open,
-    price_close,
-    price_high,
-    price_low,
-    volume_quot,
-    volume_base,
-    volume_base_sell_taker,
-    volume_base_buy_taker,
-    oi_open,
-    trades_count,
-    liquidations_sell_count,
-    liquidations_buy_count,
-    liquidations_sell_base_volume,
-    liquidations_buy_base_volume,
-    liquidations_sell_quot_volume,
-    liquidations_buy_quot_volume,
-    updated_timestamp
-FROM
-(
+SELECT *
+FROM (
     SELECT
         'price' AS event,
         toUnixTimestamp(toStartOfHour(toDateTime(trade_timestamp))) AS event_timestamp,
@@ -83,6 +59,7 @@ FROM
         toUnixTimestamp(now()) * 1000 AS updated_timestamp
     FROM futures_trades_stream
     GROUP BY event_timestamp, exchange, market, base, quot
+    ORDER BY event, event_timestamp desc
 
     UNION ALL
 
@@ -97,10 +74,10 @@ FROM
         NULL AS price_close,
         NULL AS price_high,
         NULL AS price_low,
-        sum(size * price) AS volume_quot,
+        sum(price * size) AS volume_quot,
         sum(size) AS volume_base,
-        sumIf(size, side = 'sell') AS volume_base_sell_taker,
-        sumIf(size, side = 'buy') AS volume_base_buy_taker,
+        sumIf(size, side = 'BUY' AND trade_type = 'LIMIT') AS volume_base_sell_taker,
+        sumIf(size, side = 'SELL' AND trade_type = 'LIMIT') AS volume_base_buy_taker,
         NULL AS oi_open,
         NULL AS trades_count,
         NULL AS liquidations_sell_count,
@@ -112,6 +89,7 @@ FROM
         toUnixTimestamp(now()) * 1000 AS updated_timestamp
     FROM futures_trades_stream
     GROUP BY event_timestamp, exchange, market, base, quot
+    ORDER BY event, event_timestamp desc
 
     UNION ALL
 
@@ -141,6 +119,7 @@ FROM
         toUnixTimestamp(now()) * 1000 AS updated_timestamp
     FROM futures_trades_stream
     GROUP BY event_timestamp, exchange, market, base, quot
+    ORDER BY event, event_timestamp desc
 
     UNION ALL
 
@@ -161,13 +140,14 @@ FROM
         NULL AS volume_base_buy_taker,
         NULL AS oi_open,
         NULL AS trades_count,
-        countIf(trade_type = 'liquidation' AND side = 'sell') AS liquidations_sell_count,
-        countIf(trade_type = 'liquidation' AND side = 'buy') AS liquidations_buy_count,
-        sumIf(size, trade_type = 'liquidation' AND side = 'sell') AS liquidations_sell_base_volume,
-        sumIf(size, trade_type = 'liquidation' AND side = 'buy') AS liquidations_buy_base_volume,
-        sumIf(size * price, trade_type = 'liquidation' AND side = 'sell') AS liquidations_sell_quot_volume,
-        sumIf(size * price, trade_type = 'liquidation' AND side = 'buy') AS liquidations_buy_quot_volume,
+        countIf(side = 'SELL' AND trade_type = 'LIQUIDATED') AS liquidations_sell_count,
+        countIf(side = 'BUY' AND trade_type = 'LIQUIDATED') AS liquidations_buy_count,
+        sumIf(size, side = 'SELL' AND trade_type = 'LIQUIDATED') AS liquidations_sell_base_volume,
+        sumIf(size, side = 'BUY' AND trade_type = 'LIQUIDATED') AS liquidations_buy_base_volume,
+        sumIf(price * size, side = 'SELL' AND trade_type = 'LIQUIDATED') AS liquidations_sell_quot_volume,
+        sumIf(price * size, side = 'BUY' AND trade_type = 'LIQUIDATED') AS liquidations_buy_quot_volume,
         toUnixTimestamp(now()) * 1000 AS updated_timestamp
     FROM futures_trades_stream
     GROUP BY event_timestamp, exchange, market, base, quot
-)
+    ORDER BY event, event_timestamp desc
+);
