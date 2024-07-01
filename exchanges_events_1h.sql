@@ -29,6 +29,7 @@ ORDER BY event_timestamp
 TTL toDateTime(updated_timestamp) + INTERVAL 40 DAY;
 
 -- ЗАПРОС
+
 INSERT INTO exchanges_events_1h
 SELECT
     event,
@@ -82,7 +83,6 @@ FROM
         toUnixTimestamp(now()) * 1000 AS updated_timestamp
     FROM futures_trades_stream
     GROUP BY event_timestamp, exchange, market, base, quot
-    LIMIT 100
 
     UNION ALL
 
@@ -112,7 +112,6 @@ FROM
         toUnixTimestamp(now()) * 1000 AS updated_timestamp
     FROM futures_trades_stream
     GROUP BY event_timestamp, exchange, market, base, quot
-    LIMIT 100
 
     UNION ALL
 
@@ -142,7 +141,6 @@ FROM
         toUnixTimestamp(now()) * 1000 AS updated_timestamp
     FROM futures_trades_stream
     GROUP BY event_timestamp, exchange, market, base, quot
-    LIMIT 100
 
     UNION ALL
 
@@ -172,5 +170,4 @@ FROM
         toUnixTimestamp(now()) * 1000 AS updated_timestamp
     FROM futures_trades_stream
     GROUP BY event_timestamp, exchange, market, base, quot
-    LIMIT 100
 )
