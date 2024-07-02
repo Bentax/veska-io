@@ -92,3 +92,14 @@ liquidations_sell_base_volume // объем в токенах трейдов с 
 liquidations_buy_base_volume // объем в токенах трейдов с SIDE = BUY и TYPE = LIQUIDATION
 liquidations_sell_quot_volume // объем в USD
 liquidations_buy_quot_volume // объем в USD
+
+https://github.com/veska-io/dashboards-grpc/blob/main/src/services/dashboards/sql/price_diff.sql
+посмотри на код этого запроса
+
+А именно - на секцию exchange_data_frame
+
+Твой запрос по аггрегациям посчитает неправильно. 
+Так как в базе будут дубликаты 100%. 
+Поэтому перед тем как делать аггрегации нужно сгруппировать все по "первичному ключу", а так-же отсортировать по updated_timestamp DESC. 
+Сделать для этой первичной аггрегации groupArray значений и достать оттуда первое (самое новое, так как мы отсортировали по дате вставки). 
+И вот когда данные у тебя уже гарантированно в единичном экземпляре - тогда делай основной запрос выборкой из этой CTE
