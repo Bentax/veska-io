@@ -23,33 +23,39 @@ CREATE TABLE IF NOT EXISTS aggregates_1h
     liquidations_buy_quot_volume Nullable(Float64),
     updated_timestamp UInt64 DEFAULT toUnixTimestamp64Milli(cast(now(), 'DateTime64'))
 )
-ENGINE = ReplacingMergeTree
+ENGINE = ReplacingMergeTree()
 PARTITION BY toYear(fromUnixTimestamp(agg_timestamp))
-ORDER BY (agg_timestamp, exchange, market, base, quot);
+ORDER BY (agg_timestamp, exchange, market);
 --
 INSERT INTO aggregates_1h
 SELECT
-    toUnixTimestamp(toStartOfHour(toDateTime(event_timestamp))) AS agg_timestamp,
+    event_timestamp AS agg_timestamp,
     exchange,
     market,
     base,
     quot,
-    max(price_open) AS price_open,
-    max(price_close) AS price_close,
-    max(price_high) AS price_high,
-    min(price_low) AS price_low,
-    sum(volume_quot) AS volume_quot,
-    sum(volume_base) AS volume_base,
-    sum(volume_base_sell_taker) AS volume_base_sell_taker,
-    sum(volume_base_buy_taker) AS volume_base_buy_taker,
-    max(oi_open) AS oi_open,
-    sum(trades_count) AS trades_count,
-    sum(liquidations_sell_count) AS liquidations_sell_count,
-    sum(liquidations_buy_count) AS liquidations_buy_count,
-    sum(liquidations_sell_base_volume) AS liquidations_sell_base_volume,
-    sum(liquidations_buy_base_volume) AS liquidations_buy_base_volume,
-    sum(liquidations_sell_quot_volume) AS liquidations_sell_quot_volume,
-    sum(liquidations_buy_quot_volume) AS liquidations_buy_quot_volume,
-    toUnixTimestamp(now()) * 1000 AS updated_timestamp
-FROM exchanges_events_1h
-GROUP BY agg_timestamp, exchange, market, base, quot;
+    any(price_open) AS price_open,
+    any(price_close) AS price_close,
+    any(price_high) AS price_high,
+    any(price_low) AS price_low,
+    any(volume_quot) AS volume_quot,
+    any(volume_base) AS volume_base,
+    any(volume_base_sell_taker) AS volume_base_sell_taker,
+    any(volume_base_buy_taker) AS volume_base_buy_taker,
+    any(oi_open) AS oi_open,
+    any(trades_count) AS trades_count,
+    any(liquidations_sell_count) AS liquidations_sell_count,
+    any(liquidations_buy_count) AS liquidations_buy_count,
+    any(liquidations_sell_base_volume) AS liquidations_sell_base_volume,
+    any(liquidations_buy_base_volume) AS liquidations_buy_base_volume,
+    any(liquidations_sell_quot_volume) AS liquidations_sell_quot_volume,
+    any(liquidations_buy_quot_volume) AS liquidations_buy_quot_volume,
+    toUnixTimestamp64Milli(now64(3)) AS updated_timestamp
+FROM (
+    SELECT *,
+        row_number() OVER (PARTITION BY event_timestamp,market,event ORDER BY updated_timestamp DESC) AS rn
+    FROM exchanges_events_1h
+)
+WHERE rn = 1
+GROUP BY agg_timestamp, exchange, market, base, quot
+ORDER BY updated_timestamp DESC;
