@@ -25,8 +25,8 @@ CREATE TABLE IF NOT EXISTS exchanges_events_1h
     updated_timestamp UInt64 DEFAULT toUnixTimestamp64Milli(now64(3))
 ) 
 ENGINE = MergeTree()
-ORDER BY event_timestamp
-TTL toDateTime(updated_timestamp) + INTERVAL 40 DAY;
+ORDER BY (event_timestamp, exchange, market)
+TTL toDate(updated_timestamp/1000) + INTERVAL 40 DAY;
 
 -- ЗАПРОС
 
@@ -35,7 +35,7 @@ SELECT *
 FROM (
     SELECT
         'price' AS event,
-        toUnixTimestamp(toStartOfHour(toDateTime(trade_timestamp))) AS event_timestamp,
+        trade_timestamp AS event_timestamp,
         exchange,
         market,
         base,
@@ -56,8 +56,9 @@ FROM (
         NULL AS liquidations_buy_base_volume,
         NULL AS liquidations_sell_quot_volume,
         NULL AS liquidations_buy_quot_volume,
-        toUnixTimestamp(now()) * 1000 AS updated_timestamp
+        toUnixTimestamp64Milli(now64(3)) AS updated_timestamp
     FROM futures_trades_stream
+    WHERE trade_timestamp >= (toUnixTimestamp(toStartOfHour(now())) - 3600) * 1000
     GROUP BY event_timestamp, exchange, market, base, quot
     ORDER BY event, event_timestamp desc
 
@@ -65,7 +66,7 @@ FROM (
 
     SELECT
         'volume' AS event,
-        toUnixTimestamp(toStartOfHour(toDateTime(trade_timestamp))) AS event_timestamp,
+        trade_timestamp AS event_timestamp,
         exchange,
         market,
         base,
@@ -86,8 +87,9 @@ FROM (
         NULL AS liquidations_buy_base_volume,
         NULL AS liquidations_sell_quot_volume,
         NULL AS liquidations_buy_quot_volume,
-        toUnixTimestamp(now()) * 1000 AS updated_timestamp
+        toUnixTimestamp64Milli(now64(3)) AS updated_timestamp
     FROM futures_trades_stream
+    WHERE trade_timestamp >= (toUnixTimestamp(toStartOfHour(now())) - 3600) * 1000
     GROUP BY event_timestamp, exchange, market, base, quot
     ORDER BY event, event_timestamp desc
 
@@ -95,7 +97,7 @@ FROM (
 
     SELECT
         'trades' AS event,
-        toUnixTimestamp(toStartOfHour(toDateTime(trade_timestamp))) AS event_timestamp,
+        trade_timestamp AS event_timestamp,
         exchange,
         market,
         base,
@@ -116,8 +118,9 @@ FROM (
         NULL AS liquidations_buy_base_volume,
         NULL AS liquidations_sell_quot_volume,
         NULL AS liquidations_buy_quot_volume,
-        toUnixTimestamp(now()) * 1000 AS updated_timestamp
+        toUnixTimestamp64Milli(now64(3)) AS updated_timestamp
     FROM futures_trades_stream
+    WHERE trade_timestamp >= (toUnixTimestamp(toStartOfHour(now())) - 3600) * 1000
     GROUP BY event_timestamp, exchange, market, base, quot
     ORDER BY event, event_timestamp desc
 
@@ -125,7 +128,7 @@ FROM (
 
     SELECT
         'liquidations' AS event,
-        toUnixTimestamp(toStartOfHour(toDateTime(trade_timestamp))) AS event_timestamp,
+        trade_timestamp AS event_timestamp,
         exchange,
         market,
         base,
@@ -146,8 +149,9 @@ FROM (
         sumIf(size, side = 'BUY' AND trade_type = 'LIQUIDATED') AS liquidations_buy_base_volume,
         sumIf(price * size, side = 'SELL' AND trade_type = 'LIQUIDATED') AS liquidations_sell_quot_volume,
         sumIf(price * size, side = 'BUY' AND trade_type = 'LIQUIDATED') AS liquidations_buy_quot_volume,
-        toUnixTimestamp(now()) * 1000 AS updated_timestamp
+        toUnixTimestamp64Milli(now64(3)) AS updated_timestamp
     FROM futures_trades_stream
+    WHERE trade_timestamp >= (toUnixTimestamp(toStartOfHour(now())) - 3600) * 1000
     GROUP BY event_timestamp, exchange, market, base, quot
     ORDER BY event, event_timestamp desc
 );
