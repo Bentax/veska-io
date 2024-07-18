@@ -50,8 +50,8 @@ CREATE TABLE IF NOT EXISTS exchanges_events_1h
     liquidations_shorts_base_volume	Nullable(Float64),
     liquidations_longs_base_volume	Nullable(Float64),
     liquidations_shorts_quot_volume	Nullable(Float64),
-    liquidations_longs_quot_volume	Nullable(Float64),
-    funding_rate	Nullable(Float64),
+    liquidations_longs_quot_volume Nullable(Float64),
+    funding_rate Nullable(Float64),
     updated_timestamp UInt64 DEFAULT toUnixTimestamp64Milli(now64(3))
 ) 
 ENGINE = MergeTree()
