@@ -62,3 +62,39 @@ FROM (
 WHERE rn = 1
 GROUP BY agg_timestamp, exchange, market, base, quot
 ORDER BY updated_timestamp DESC;
+
+
+SELECT
+    event_timestamp AS agg_timestamp,
+    exchange,
+    market,
+    base,
+    quot,
+    any(price_open) AS price_open,
+    any(price_close) AS price_close,
+    any(price_high) AS price_high,
+    any(price_low) AS price_low,
+    any(volume_base) AS volume_base,
+    any(volume_quot) AS volume_quot,
+    any(volume_base_buy_taker) AS volume_base_buy_taker,
+    any(volume_quot_buy_taker) AS volume_quot_buy_taker,
+    any(volume_base_sell_taker) AS volume_base_sell_taker,
+    any(volume_quot_sell_taker) AS volume_quot_sell_taker,
+    any(oi_open) AS oi_open,
+    any(trades_count) AS trades_count,
+    any(liquidations_shorts_count) AS liquidations_shorts_count,
+    any(liquidations_longs_count) AS liquidations_longs_count,
+    any(liquidations_shorts_base_volume) AS liquidations_shorts_base_volume,
+    any(liquidations_longs_base_volume) AS liquidations_longs_base_volume,
+    any(liquidations_shorts_quot_volume) AS liquidations_shorts_quot_volume,
+    any(liquidations_longs_quot_volume) AS liquidations_longs_quot_volume,
+    any(funding_rate) AS funding_rate,
+    toUnixTimestamp64Milli(now64(3)) AS updated_timestamp
+FROM (
+    SELECT *,
+        row_number() OVER (PARTITION BY event_timestamp,market,event ORDER BY updated_timestamp DESC) AS rn
+    FROM futures_exchanges_events_1h
+)
+WHERE rn = 1
+GROUP BY agg_timestamp, exchange, market, base, quot
+ORDER BY updated_timestamp DESC;
