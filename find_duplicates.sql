@@ -15,3 +15,9 @@ GROUP BY updated_timestamp, base, quot
 HAVING count(*) > 1
 -- result NOT NULL
 ######
+SELECT sum(qwerty) FROM
+(SELECT count() AS qwerty
+    FROM binance_futures_klines_1h
+    GROUP BY updated_timestamp, base, quot
+    HAVING count() > 1)
+-- result 7174218
