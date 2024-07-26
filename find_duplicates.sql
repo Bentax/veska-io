@@ -1,3 +1,6 @@
+--EXCEPT--
+#
+#
 SELECT count(*)
 FROM binance_futures_klines_1h
 --WHERE kline_timestamp >= (toUnixTimestamp64Milli(now64(3)) - 3600000)
