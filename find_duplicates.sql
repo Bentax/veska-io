@@ -21,3 +21,10 @@ SELECT sum(qwerty) FROM
     GROUP BY updated_timestamp, base, quot
     HAVING count() > 1)
 -- result 7174218
+######
+SELECT avg(qwerty) FROM
+(SELECT count() AS qwerty
+    FROM binance_futures_klines_1h
+    GROUP BY updated_timestamp, base, quot
+    HAVING count() > 1)
+-- result 196.41400646115096
