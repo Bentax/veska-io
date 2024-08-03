@@ -3,7 +3,7 @@ with exchange_data_frame as (
         toDateTime(agg_timestamp/1000) as datetime,
         exchange, 
         market,
-        any((volume_base_buy_taker - volume_base_sell_taker) / NULLIF(greatest(volume_base_buy_taker, volume_base_sell_taker), 0)) as _volume_base
+        any((volume_base_buy_taker - volume_base_sell_taker) / (greatest(volume_base_buy_taker, volume_base_sell_taker))) as _volume_base
     from aggregates_1h
 
     where
