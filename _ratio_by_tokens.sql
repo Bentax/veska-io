@@ -5,7 +5,6 @@ with exchange_data_frame as (
         market,
         groupArray(volume_base_buy_taker)[1] AS vbbt,
         groupArray(volume_base_sell_taker)[1] AS vbst
-        --any((volume_base_buy_taker - volume_base_sell_taker) / (greatest(volume_base_buy_taker, volume_base_sell_taker))) as _volume_base
     from aggregates_1h
 
     where
