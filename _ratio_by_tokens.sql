@@ -3,7 +3,9 @@ with exchange_data_frame as (
         toDateTime(agg_timestamp/1000) as datetime,
         exchange, 
         market,
-        any((volume_base_buy_taker - volume_base_sell_taker) / (greatest(volume_base_buy_taker, volume_base_sell_taker))) as _volume_base
+        groupArray(volume_base_buy_taker)[1] AS vbbt,
+        groupArray(volume_base_sell_taker)[1] AS vbst
+        --any((volume_base_buy_taker - volume_base_sell_taker) / (greatest(volume_base_buy_taker, volume_base_sell_taker))) as _volume_base
     from aggregates_1h
 
     where
@@ -19,7 +21,7 @@ exchange_data_frame_by_interval as (
     SELECT
         exchange,
         market,
-        groupArray(_volume_base)[1] as __volume_base,
+        any((vbbt-vbst)/(greatest(vbbt, vbst))) as __volume_base,
         datetime as grouping_datetime
 
     FROM
