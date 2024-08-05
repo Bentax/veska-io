@@ -1,3 +1,24 @@
+
+--Проверка состояния и устранение ошибок
+--Проверка текущих задач в ClickHouse:
+
+SELECT *
+FROM system.mutations
+WHERE table = 'aggregates_1h';
+--Это поможет вам увидеть, есть ли незавершенные изменения (мутаторы), которые блокируют выполнение новых команд.
+
+--Проверка реплик:
+
+SELECT *
+FROM system.replication_queue
+WHERE table = 'aggregates_1h';
+---Это покажет, есть ли задачи репликации, которые нужно завершить.
+
+SYSTEM SYNC REPLICA aggregates_1h;
+###################
+ALTER TABLE aggregates_1h DROP INDEX idx_agg_timestamp;
+ALTER TABLE aggregates_1h DROP INDEX idx_market;
+ALTER TABLE aggregates_1h DROP INDEX idx_exchange;
 ###################
 5/08/24
 ALTER TABLE aggregates_1h
