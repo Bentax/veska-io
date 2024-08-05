@@ -1,0 +1,46 @@
+Чтобы проверить, есть ли в таблице индексы, вы можете использовать команду SHOW CREATE TABLE в ClickHouse. Эта команда покажет вам SQL-запрос, который был использован для создания таблицы, включая любые индексы, которые были добавлены.
+
+Вот пример, как это сделать:
+
+sql
+Копировать код
+SHOW CREATE TABLE aggregates_1h;
+Результат этого запроса покажет структуру таблицы, включая определения индексов.
+
+Пример
+Если в таблице aggregates_1h есть индексы, результат будет выглядеть примерно так:
+
+sql
+Копировать код
+CREATE TABLE aggregates_1h
+(
+    `agg_timestamp` UInt64,
+    `market` String,
+    `exchange` String,
+    `volume_base_buy_taker` Float64,
+    `volume_base_sell_taker` Float64,
+    `volume_quot_buy_taker` Float64,
+    `volume_quot_sell_taker` Float64
+)
+ENGINE = MergeTree()
+ORDER BY agg_timestamp
+SETTINGS index_granularity = 8192
+
+INDEX idx_agg_timestamp (agg_timestamp) TYPE minmax GRANULARITY 1,
+INDEX idx_market (market) TYPE set(100) GRANULARITY 1,
+INDEX idx_exchange (exchange) TYPE set(100) GRANULARITY 1;
+Дополнительный способ
+Если нужно получить только информацию о добавленных индексах, вы можете использовать запрос к системной таблице system.data_skipping_indices, которая содержит информацию обо всех индексах:
+
+sql
+Копировать код
+SELECT
+    database,
+    table,
+    name,
+    expression,
+    type,
+    granularity
+FROM system.data_skipping_indices
+WHERE table = 'aggregates_1h';
+Этот запрос вернет список индексов, добавленных в таблицу aggregates_1h, с их именами, выражениями, типами и гранулярностью.
