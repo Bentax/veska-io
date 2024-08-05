@@ -20,7 +20,7 @@ exchange_data_frame_by_interval as (
     SELECT
         exchange,
         market,
-        any((vbbt-vbst)/(greatest(vbbt, vbst))) as __volume_base,
+        sum((vbbt-vbst)/(greatest(vbbt, vbst))) as __volume_base,
         datetime as grouping_datetime
 
     FROM
