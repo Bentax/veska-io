@@ -1,3 +1,15 @@
+###################
+5/08/24
+ALTER TABLE aggregates_1h
+ADD INDEX idx_agg_timestamp (agg_timestamp) TYPE minmax GRANULARITY 1;
+
+ALTER TABLE aggregates_1h
+ADD INDEX idx_market (market) TYPE set(100) GRANULARITY 1;
+
+ALTER TABLE aggregates_1h
+ADD INDEX idx_exchange (exchange) TYPE set(100) GRANULARITY 1;
+
+###################
 1/08/24
 п2 - Вроде ты уже делал такое уже. Пример как я сделал можешь глянуть например в price diff в Basic Views v2. Я всегда сначала подготавливаю данные из которых буду лепить конечный рещультат. Делаю "WITH" и называю обычно "exchange_data_frame". Потом уже из жтих данных строю основную выюборку
 31/07/24
