@@ -36,3 +36,6 @@ SELECT
 FROM system.data_skipping_indices
 WHERE table = 'aggregates_1h';
 Этот запрос вернет список индексов, добавленных в таблицу aggregates_1h, с их именами, выражениями, типами и гранулярностью.
+###############
+##### public	aggregates_1h	idx_exchange	set	1
+###############
