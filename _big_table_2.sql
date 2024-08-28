@@ -6,11 +6,7 @@ with pre_load as (
         max(buy_liquidation) as buy_liquidation, max(sell_liquidation) as sell_liquidation,
         max(buy_liquidation_val) as buy_liquidation_val, max(sell_liquidation_val) as sell_liquidation_val,
         max(rate) as rate,
-        max(low_price) as low_price, max(high_price) as high_price,
-        IF( '${market_group}' != 'others',
-        has((SELECT markets from market_groups where group = '${market_group}'), market),
-        not has((SELECT markets from market_groups where group = '${market_group}'), market)
-        ) as is_in_group
+        max(low_price) as low_price, max(high_price) as high_price
     from (
         (
             SELECT
@@ -51,7 +47,6 @@ with pre_load as (
                 datetime >= date_sub(hour,5*${window_size},$__toTime)
                 and exchange = '${exchange}'
                 and market in (${markets})
-                and event = 'dydx_candle'
             group by datetime, exchange, market
         )
         union all
@@ -69,11 +64,9 @@ with pre_load as (
                 datetime >= date_sub(hour,5*${window_size},$__toTime)
                 and exchange = '${exchange}'
                 and market in (${markets})
-                and event = 'trades'
             group by datetime, exchange, market
         )
     )
-    where ('${market_group}' = 'all' OR is_in_group)
     group by datetime, exchange, market
 ), t0 as (
     select 
@@ -93,8 +86,6 @@ with pre_load as (
         if(volume_token_sum1=0 and volume_token_sum2=0,0,if(volume_token_sum1>0 and volume_token_sum2=0,100,((volume_token_sum1-volume_token_sum2)/abs(volume_token_sum2))*100)) as vol_token_wind_diff,
         if(volume_usd_sum1=0 and volume_usd_sum2=0,0,if(volume_usd_sum1>0 and volume_usd_sum2=0,100,((volume_usd_sum1-volume_usd_sum2)/abs(volume_usd_sum2))*100)) as vol_usd_wind_diff,
         if(open_interest_sum1=0 and open_interest_sum2=0,0,if(open_interest_sum1>0 and open_interest_sum2=0,100,((open_interest_sum1-open_interest_sum2)/abs(open_interest_sum2))*100)) as open_int_wind_diff,
-        -- if(buy_liquidation_sum1=0 and buy_liquidation_sum2=0,0,if(buy_liquidation_sum1>0 and buy_liquidation_sum2=0,100,((buy_liquidation_sum1-buy_liquidation_sum2)/abs(buy_liquidation_sum2))*100)) as buy_liquid_wind_diff,
-        -- if(sell_liquidation_sum1=0 and sell_liquidation_sum2=0,0,if(sell_liquidation_sum1>0 and sell_liquidation_sum2=0,100,((sell_liquidation_sum1-sell_liquidation_sum2)/abs(sell_liquidation_sum2))*100)) as sell_liquid_wind_diff
         buy_liquidation_sum1-buy_liquidation_sum2 as buy_liquid_wind_diff,
         sell_liquidation_sum1-sell_liquidation_sum2 as sell_liquid_wind_diff,
         buy_liquidation_sum1,sell_liquidation_sum1,
