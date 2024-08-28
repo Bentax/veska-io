@@ -10,25 +10,26 @@ with pre_load as (
     from (
         (
             SELECT
-                date_add(
-                    hour,
-                    if(toInt8(dateName('hour',datetime))%IF('${exchange}'='dydx', 1, 8) == 0,0,IF('${exchange}'='dydx', 1, 8)),
-                    toStartOfInterval(datetime, interval IF('${exchange}'='dydx', 1, 8) hour) 
-                ) as datetime, exchange, market,
-                toDecimal32(any(if(rate != 0, rate*100, NULL)), 8) as rate,
-                NULL as price,
-                null as volume_token, null as volume_usd, null as open_interest, null as buy_liquidation, null as sell_liquidation,
-                null as buy_liquidation_val,
-                null as sell_liquidation_val,
-                null as high_price,
-                null as low_price
-            from funding_stream
+                date_add(hour,if(toInt8(dateName('hour',toDateTime(agg_timestamp/1000)))%IF('${exchange}'='dydx', 1, 8) == 0,0,IF('${exchange}'='dydx', 1, 8)),
+                        toStartOfInterval(toDateTime(agg_timestamp/1000), interval IF('${exchange}'='dydx', 1, 8) hour)) as datetime, 
+                exchange, market,
+                toDecimal32(any(if(funding_rate != 0, funding_rate*100, NULL)), 8) as rate,
+                anyLast(price_open) as price,
+                anyLast(volume_base) as volume_token, 
+                anyLast(volume_quot) as volume_usd, 
+                anyLast(oi_open) as open_interest, 
+                anyLast(liquidations_longs_count) as buy_liquidation, 
+                anyLast(liquidations_shorts_count) as sell_liquidation,
+                anyLast(liquidations_longs_quot_volume) as buy_liquidation_val,
+                anyLast(liquidations_shorts_quot_volume) as sell_liquidation_val,
+                anyLast(price_high) as high_price,
+                anyLast(price_low) as low_price
+            from public.aggregates_1h
             where
-                market in (${markets})
-                AND exchange = '${exchange}'
-                AND datetime >= date_sub(hour,5*${window_size},$__toTime)
-                AND datetime <=  $__toTime 
-            group by datetime, exchange, market
+                exchange = '${exchange}'
+                AND market in (${markets})
+                AND toDateTime(agg_timestamp/1000) between date_sub(hour,5*${window_size},$__toTime) AND $__toTime 
+            group by datetime, exchange, market;
         )
         union all
         (
