@@ -124,39 +124,42 @@ calculations as (
     group by market
 ), 
 final_t_1 as (
-    SELECT 
+    select 
         *, 
-        groupArray(cond_match) OVER (PARTITION BY exchange, market ORDER BY datetime ASC ROWS BETWEEN toUInt64((toInt16(IF('${max_length}'='', '1', '${max_length}')))) PRECEDING AND 1 PRECEDING) AS arr_cond
-    FROM (
-        SELECT 
-            c.*, 
-            (filter1_res BETWEEN toFloat64(IF('${var1_from}' = '', toString(d.filter1_res_min), '${var1_from}')) AND toFloat64(IF('${var1_to}' = '', toString(d.filter1_res_max), '${var1_to}'))) AS filter1_cond, 
-            (filter1_res_lag BETWEEN toFloat64(IF('${var1_from}' = '', toString(d.filter1_res_min), '${var1_from}')) AND toFloat64(IF('${var1_to}' = '', toString(d.filter1_res_max), '${var1_to}'))) AS filter1_cond_lag,
-            (filter2_res BETWEEN toFloat64(IF('${var2_from}' = '', toString(d.filter2_res_min), '${var2_from}')) AND toFloat64(IF('${var2_to}' = '', toString(d.filter2_res_max), '${var2_to}'))) AS filter2_cond, 
-            (filter2_res_lag BETWEEN toFloat64(IF('${var2_from}' = '', toString(d.filter2_res_min), '${var2_from}')) AND toFloat64(IF('${var2_to}' = '', toString(d.filter2_res_max), '${var2_to}'))) AS filter2_cond_lag,
-            ('${var1_to}' = '' AND '${var1_from}' = '') AS f1_empty,
-            ('${var2_to}' = '' AND '${var2_from}' = '') AS f2_empty,
-            CASE
-                WHEN (filter1_cond AND filter2_cond) THEN True
-                WHEN (filter1_cond AND f2_empty) OR (filter2_cond AND f1_empty) THEN True
-                WHEN '${rel_type}' = 'OR' AND ((filter1_cond AND NOT f1_empty) OR (filter2_cond AND NOT f2_empty)) THEN True
-            ELSE False
-            END AS cond_match,
-            CASE
-                WHEN (filter1_cond_lag AND filter2_cond_lag) THEN True
-                WHEN (filter1_cond_lag AND f2_empty) OR (filter2_cond_lag AND f1_empty) THEN True
-                WHEN '${rel_type}' = 'OR' AND ((filter1_cond_lag AND NOT f1_empty) OR (filter2_cond_lag AND NOT f2_empty)) THEN True
-            ELSE False
-            END AS cond_match_lag
-        FROM 
-            calculations c
-        LEFT JOIN 
-            default_vals d ON d.market = c.market
+        groupArray(cond_match) over(partition by exchange, market order by datetime asc rows between toUInt64((toInt16(if('${max_length}'='','1','${max_length}')))) PRECEDING and 1 PRECEDING) as arr_cond
+    from  (
+    select c.*, 
+        (filter1_res between toFloat64(if('${var1_from}' = '', toString(d.filter1_res_min), '${var1_from}')) and toFloat64(if('${var1_to}' = '', toString(d.filter1_res_max), '${var1_to}'))) as filter1_cond, 
+        (filter1_res_lag between toFloat64(if('${var1_from}' = '', toString(d.filter1_res_min), '${var1_from}')) and toFloat64(if('${var1_to}' = '', toString(d.filter1_res_max), '${var1_to}'))) as filter1_cond_lag
+
+        , 
+        (filter2_res between toFloat64(if('${var2_from}' = '', toString(d.filter2_res_min), '${var2_from}')) and toFloat64(if('${var2_to}' = '', toString(d.filter2_res_max), '${var2_to}'))) as filter2_cond, 
+        (filter2_res_lag between toFloat64(if('${var2_from}' = '', toString(d.filter2_res_min), '${var2_from}')) and toFloat64(if('${var2_to}' = '', toString(d.filter2_res_max), '${var2_to}'))) as filter2_cond_lag,
+        ('${var1_to}' = '' and '${var1_from}' = '') as f1_empty,
+        ('${var2_to}' = '' and '${var2_from}' = '') as f2_empty,
+        
+        CASE
+            when (filter1_cond  and filter2_cond) then True
+            when (filter1_cond  and f2_empty) or (filter2_cond and f1_empty) then True
+            when '${rel_type}'='OR' and ((filter1_cond and not f1_empty) or (filter2_cond and not f2_empty)) then True
+        ELSE False
+        END AS cond_match,
+        CASE
+            when (filter1_cond_lag  and filter2_cond_lag) then True
+            when (filter1_cond_lag  and f2_empty) or (filter2_cond_lag and f1_empty) then True
+            when '${rel_type}'='OR' and ((filter1_cond_lag and not f1_empty) or (filter2_cond_lag and not f2_empty)) then True
+        ELSE False
+        END AS cond_match_lag,
+        IF( '${market_group}' != 'others',
+            has((SELECT markets from market_groups where group = '${market_group}'), market),
+            not has((SELECT markets from market_groups where group = '${market_group}'), market)
+        ) as is_in_group
+        from calculations c
+    left join default_vals d on d.market = c.market
     )
     WHERE 
-        datetime >= $__fromTime 
-        AND datetime <= $__toTime
-        -- AND cond_match
+        (datetime >= $__fromTime and datetime <= $__toTime) 
+        and ('${market_group}' = 'all' OR is_in_group)
 ),
 final_t as (
     select 
